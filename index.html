@@ -38,6 +38,14 @@ main{flex:1;overflow:auto;position:relative}
 .quote{border-left:3px solid var(--fg);padding-left:12px;margin:3px 0}
 .code{font:14px/1.5 ui-monospace,Menlo,monospace;background:var(--hv);border-radius:6px;padding:10px}
 .done{text-decoration:line-through;color:var(--mu)}
+.call{background:var(--hv);border-radius:6px;padding:8px 10px;margin:4px 0}
+.vw{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}.vw .btn.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.board{display:flex;gap:12px;overflow:auto;align-items:flex-start;margin-bottom:10px}
+.col{min-width:220px;background:var(--sb);border-radius:8px;padding:8px}.col h4{margin:0 0 8px;font-size:13px;color:var(--mu)}
+.card{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:14px;cursor:pointer}
+.card select{font-size:11px;margin-top:6px;background:none;border:1px solid var(--bd);border-radius:4px}
+.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:10px}.gal .card{margin:0}
+.lst{margin-bottom:10px}.lst .card{display:flex;gap:10px;border:0;border-bottom:1px solid var(--bd);border-radius:0;margin:0}
 .im{max-width:100%;border-radius:6px}hr{flex:1;border:0;border-top:1px solid var(--bd);margin:12px 0}
 .blk a{color:var(--ac);padding:4px 0}
 .ctl{display:none;gap:2px;font-size:11px;color:var(--mu)}.blk:hover .ctl{display:flex}
@@ -119,7 +127,7 @@ function renderMain(){const m=$('#doc');m.textContent='';const p=P[cur];
  m.append(ic,ti);p.type==='db'?renderDb(m,p):renderBlocks(m,p)}
 
 /* ---------- Editor de blocos ---------- */
-const PH={p:"Digite '/' para comandos",h1:'Título 1',h2:'Título 2',h3:'Título 3',quote:'Citação',code:'Código',todo:'Tarefa',ul:'Lista'};
+const PH={p:"Digite '/' para comandos",h1:'Título 1',h2:'Título 2',h3:'Título 3',quote:'Citação',code:'Código',todo:'Tarefa',ul:'Lista',ol:'Lista numerada',callout:'Destaque'};
 function mk(b,p){const w=el('div',{class:'blk','data-id':b.id});const i=p.blocks.indexOf(b);
  const ctl=el('span',{class:'ctl'});
  [['▲',-1],['▼',1],['✕',0]].forEach(([s,d])=>{const x=el('b',{text:s});x.onclick=()=>{
@@ -133,7 +141,8 @@ function mk(b,p){const w=el('div',{class:'blk','data-id':b.id});const i=p.blocks
  else{const tx=el('div',{class:'tx '+b.t,contenteditable:'plaintext-only','data-ph':PH[b.t]||''});tx.textContent=b.x||'';
   if(b.t==='todo'){const k=el('input',{type:'checkbox'});k.checked=!!b.d;tx.classList.toggle('done',!!b.d);
    k.onchange=()=>{b.d=k.checked;tx.classList.toggle('done',b.d);save(p)};body=el('div',{class:'row'},k,tx)}
-  else if(b.t==='ul')body=el('div',{class:'row'},el('span',{text:'•'}),tx);
+  else if(b.t==='ul'||b.t==='ol'){let n=1,j=i-1;while(j>=0&&p.blocks[j].t==='ol'){n++;j--}body=el('div',{class:'row'},el('span',{text:b.t==='ul'?'•':n+'.'}),tx)}
+  else if(b.t==='callout')body=el('div',{class:'row call'},el('span',{text:'💡'}),tx);
   else body=tx}
  w.append(body,ctl);return w}
 function renderBlocks(m,p){let c=$('#bl');if(!c||!m.contains(c)){c=el('div',{id:'bl'});m.append(c)}c.textContent='';
@@ -146,7 +155,7 @@ const cb=e=>{const w=e.target.closest?.('.blk');const p=P[cur];return w&&p&&e.ta
 
 /* menu "/" */
 const menu={on:0,l:[],i:0,b:null,p:null};
-const ITEMS=[['p','Texto'],['h1','Título 1'],['h2','Título 2'],['h3','Título 3'],['ul','Lista'],['todo','Tarefa'],['quote','Citação'],['code','Código'],['hr','Divisor'],['img','Imagem'],['file','Arquivo']];
+const ITEMS=[['p','Texto'],['h1','Título 1'],['h2','Título 2'],['h3','Título 3'],['ul','Lista'],['ol','Numerada'],['todo','Tarefa'],['callout','Destaque'],['quote','Citação'],['code','Código'],['hr','Divisor'],['img','Imagem'],['file','Arquivo']];
 function showMenu(tx,b,p,q){menu.l=ITEMS.filter(i=>i[1].toLowerCase().includes(q.toLowerCase()));if(!menu.l.length)return hideMenu();
  Object.assign(menu,{on:1,i:0,b,p});const r=tx.getBoundingClientRect(),m=$('#menu');m.style.display='block';
  m.style.left=Math.max(4,Math.min(r.left,innerWidth-190))+'px';m.style.top=Math.max(4,Math.min(r.bottom+4,innerHeight-300))+'px';drawMenu()}
@@ -159,7 +168,7 @@ function pick(it){const {b,p}=menu,t=it[0];hideMenu();b.x='';
 
 const D=$('#doc');
 D.addEventListener('input',e=>{const [p,b]=cb(e);if(!b)return;const x=e.target.textContent.replace(/\u00a0/g,' ');b.x=x;
- const M={'# ':'h1','## ':'h2','### ':'h3','- ':'ul','* ':'ul','[] ':'todo','> ':'quote'};
+ const M={'# ':'h1','## ':'h2','### ':'h3','- ':'ul','* ':'ul','[] ':'todo','1. ':'ol','> ':'quote'};
  if(b.t==='p'&&M[x]){b.t=M[x];b.x='';hideMenu();save(p);rb(p);focusB(b.id);return}
  x.startsWith('/')&&b.t!=='code'?showMenu(e.target,b,p,x.slice(1)):hideMenu();save(p)});
 // beforeinput é mais confiável que keydown nos teclados do Android
@@ -167,8 +176,8 @@ D.addEventListener('beforeinput',e=>{const [p,b]=cb(e);if(!b)return;const i=p.bl
  if(e.inputType==='insertParagraph'&&b.t!=='code'){e.preventDefault();if(menu.on)return pick(menu.l[menu.i]);
   const x=b.x||'';
   if(x==='---'){b.t='hr';b.x='';add(p,i);return}
-  if(/^(ul|todo)$/.test(b.t)&&!x){b.t='p';save(p);rb(p);focusB(b.id);return}
-  add(p,i,/^(ul|todo)$/.test(b.t)?b.t:'p')}
+  if(/^(ul|ol|todo)$/.test(b.t)&&!x){b.t='p';save(p);rb(p);focusB(b.id);return}
+  add(p,i,/^(ul|ol|todo)$/.test(b.t)?b.t:'p')}
  else if(e.inputType==='deleteContentBackward'&&!b.x){e.preventDefault();
   if(b.t!=='p'){b.t='p';save(p);rb(p);focusB(b.id)}
   else if(p.blocks.length>1){p.blocks.splice(i,1);save(p);rb(p);focusB(p.blocks[Math.max(0,i-1)].id)}}});
@@ -183,8 +192,21 @@ function up(acc,cb){const i=el('input',{type:'file',accept:acc});
 async function upload(f){const r=sref(st,`users/${uid}/files/${Date.now()}_${f.name}`);await uploadBytes(r,f);return getDownloadURL(r)}
 
 /* ---------- Database (tabela) ---------- */
-const KINDS={text:'Texto',num:'Número',check:'Checkbox',date:'Data',file:'Arquivo'};
-function renderDb(m,p){const w=el('div',{class:'scroll'}),t=el('table'),h=el('tr');
+const KINDS={text:'Texto',num:'Número',check:'Checkbox',date:'Data',file:'Arquivo',select:'Seleção'};
+const ttl=(p,r)=>(r.v&&r.v[p.cols[0].id])||'Sem título';
+function renderDb(m,p){const v=p.view||'table',bar=el('div',{class:'vw'});
+ [['table','▦ Tabela'],['board','▥ Board'],['gallery','▤ Galeria'],['list','☰ Lista']].forEach(([k,n])=>bar.append(el('button',{class:'btn'+(k===v?' on':''),text:n,onclick:()=>{p.view=k;save(p);renderMain()}})));
+ m.append(bar);if(v==='table')return renderTable(m,p);
+ const sc=p.cols.find(c=>c.k==='select');
+ const card=r=>{r.v=r.v||{};const d=el('div',{class:'card'},el('b',{text:ttl(p,r)}));
+  p.cols.slice(1).forEach(c=>{const x=r.v[c.id];if(c.k==='check'){if(x)d.append(el('div',{class:'mu',text:'✓ '+c.n}))}else if(x&&c.k!=='file')d.append(el('div',{class:'mu',text:c.n+': '+x}))});
+  if(v==='board'&&sc){const s=el('select');['',...(sc.o||[])].forEach(o=>s.append(el('option',{value:o,text:o||'Sem valor'})));s.value=r.v[sc.id]||'';s.onchange=()=>{r.v[sc.id]=s.value;save(p);renderMain()};d.append(s)}
+  d.onclick=e=>{if(e.target.tagName==='SELECT')return;const n=prompt('Título:',r.v[p.cols[0].id]||'');if(n!==null){r.v[p.cols[0].id]=n;save(p);renderMain()}};return d};
+ if(v==='board'){if(!sc){m.append(el('p',{class:'mu',text:'Crie uma coluna do tipo Seleção na Tabela para agrupar o Board.'}))}
+  else{const bd=el('div',{class:'board'});['',...(sc.o||[])].forEach(o=>{const c=el('div',{class:'col'},el('h4',{text:o||'Sem valor'}));p.rows.filter(r=>((r.v&&r.v[sc.id])||'')===o).forEach(r=>c.append(card(r)));bd.append(c)});m.append(bd)}}
+ else{const g=el('div',{class:v==='gallery'?'gal':'lst'});p.rows.forEach(r=>g.append(card(r)));m.append(g)}
+ m.append(el('button',{class:'btn',text:'+ Nova linha',onclick:()=>{p.rows.push({id:id8(),v:{}});save(p);renderMain()}}))}
+function renderTable(m,p){const w=el('div',{class:'scroll'}),t=el('table'),h=el('tr');
  p.cols.forEach((c,ci)=>{const n=el('input',{value:c.n});n.oninput=()=>{c.n=n.value;save(p)};
   const s=el('select');Object.entries(KINDS).forEach(([k,v])=>{const o=el('option',{value:k,text:v});if(k===c.k)o.selected=true;s.append(o)});
   s.onchange=()=>{c.k=s.value;save(p);renderMain()};
@@ -195,6 +217,9 @@ function renderDb(m,p){const w=el('div',{class:'scroll'}),t=el('table'),h=el('tr
  p.rows.forEach((r,ri)=>{const tr=el('tr');r.v=r.v||{};
   p.cols.forEach(c=>{const td=el('td'),v=r.v[c.id];let i;
    if(c.k==='check'){i=el('input',{type:'checkbox'});i.checked=!!v;i.onchange=()=>{r.v[c.id]=i.checked;save(p)}}
+   else if(c.k==='select'){i=el('select');c.o=c.o||[];['',...c.o].forEach(o=>i.append(el('option',{value:o,text:o||'—'})));i.value=v||'';
+    i.onchange=()=>{r.v[c.id]=i.value;save(p)};const pl=el('b',{text:' ＋',class:'x'});
+    pl.onclick=()=>{const n=prompt('Nova opção:');if(n){c.o.push(n);save(p);renderMain()}};td.append(i,pl);tr.append(td);return}
    else if(c.k==='file'){const a=el('a',{target:'_blank',text:v?'📎 '+v.n:''});if(v)a.href=v.u;
     const bt=el('b',{text:' ⬆',class:'x'});bt.onclick=()=>up('*/*',async f=>{r.v[c.id]={n:f.name,u:await upload(f)};save(p);if(P[cur]===p)renderMain()});
     td.append(a,bt);tr.append(td);return}
